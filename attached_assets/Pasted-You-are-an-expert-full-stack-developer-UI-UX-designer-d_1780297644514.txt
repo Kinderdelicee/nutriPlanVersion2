@@ -1,0 +1,223 @@
+You are an expert full-stack developer, UI/UX designer, database architect, and senior prompt engineer.
+Build a complete, production-ready, fully functional web application called NutriPlan — a smart meal planner and calorie counter designed primarily for students and busy young adults. The goal is to help users plan daily/weekly meals, track calories and macronutrients, set goals, and maintain healthy habits with zero friction.
+Every single button, form, navigation item, interaction, and feature must work perfectly with no errors, no dead links, no console errors, and excellent user experience.
+Exact Tech Stack (Use ONLY these)
+
+Frontend: React 19 + Vite + TypeScript (strict mode) + Tailwind CSS + shadcn/ui + TanStack Query (React Query) + Zustand + Framer Motion + React Hook Form + Zod + Recharts + Lucide React icons + date-fns
+Backend: Node.js + Express.js + TypeScript
+Database: SQLite with Prisma ORM (best for Replit)
+Authentication: JWT + HttpOnly cookies + bcryptjs + Zod validation
+Other: @dnd-kit for drag & drop, concurrently for running both servers
+
+Replit Project Structure (Create Exactly This)
+text/nutriplan
+├── frontend/                  # Vite React app
+│   ├── src/
+│   │   ├── components/        # Reusable UI components
+│   │   ├── pages/             # All page components
+│   │   ├── lib/               # API client, utils
+│   │   ├── store/             # Zustand stores
+│   │   ├── App.tsx
+│   │   └── main.tsx
+├── backend/                   # Express server
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── routes/
+│   │   ├── middleware/
+│   │   └── index.ts
+├── prisma/
+│   └── schema.prisma
+├── package.json               # Root with dev scripts
+├── .env.example
+└── README.md
+Full Prisma Schema (Create Exactly This)
+prismagenerator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  age           Int?
+  gender        String?
+  weight        Float?    // kg
+  height        Float?    // cm
+  activityLevel String?   // Sedentary, Light, Moderate, Active, Very Active
+  dailyCalories Int?      @default(2000)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  foodLogs      FoodLog[]
+  meals         Meal[]
+  savedMeals    SavedMeal[]
+}
+
+model Food {
+  id          String   @id @default(cuid())
+  name        String
+  calories    Int
+  protein     Float    @default(0)
+  carbs       Float    @default(0)
+  fat         Float    @default(0)
+  servingSize String   @default("100g")
+  category    String?
+  isCustom    Boolean  @default(false)
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  foodLogs    FoodLog[]
+  mealItems   MealItem[]
+}
+
+model Meal {
+  id            String     @id @default(cuid())
+  userId        String
+  name          String
+  description   String?
+  totalCalories Int
+  totalProtein  Float
+  totalCarbs    Float
+  totalFat      Float
+  createdAt     DateTime   @default(now())
+
+  user          User       @relation(fields: [userId], references: [id])
+  items         MealItem[]
+}
+
+model MealItem {
+  id       String @id @default(cuid())
+  mealId   String
+  foodId   String
+  quantity Float
+  calories Int
+  protein  Float
+  carbs    Float
+  fat      Float
+
+  meal     Meal   @relation(fields: [mealId], references: [id])
+  food     Food   @relation(fields: [foodId], references: [id])
+}
+
+model FoodLog {
+  id             String   @id @default(cuid())
+  userId         String
+  date           DateTime
+  mealType       String   // Breakfast, Lunch, Dinner, Snack
+  foodId         String?
+  customFoodName String?
+  quantity       Float
+  calories       Int
+  protein        Float
+  carbs          Float
+  fat            Float
+  notes          String?
+
+  user           User     @relation(fields: [userId], references: [id])
+  food           Food?    @relation(fields: [foodId], references: [id])
+}
+
+model SavedMeal {
+  id     String @id @default(cuid())
+  userId String
+  mealId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  meal   Meal   @relation(fields: [mealId], references: [id])
+}
+Run npx prisma generate and npx prisma db push after creating the schema.
+DETAILED UI/UX & DESIGN SPECIFICATIONS (Follow 100%)
+Color Palette:
+
+Primary: #10b981 (emerald-500), Hover: #059669
+Background: #f8fafc (light) / #0f172a (dark)
+Cards/Surface: #ffffff (light) / #1e2937 (dark)
+Text: #0f172a (light) / #f1f5f9 (dark)
+Secondary Text: #64748b
+Success: #10b981, Warning: #f59e0b, Danger: #ef4444
+
+Typography (Inter font):
+
+H1: 32px / 700
+H2: 24px / 600
+H3: 20px / 600
+Body: 16px
+Small: 14px
+Line height: 1.6
+
+Spacing & Sizes:
+
+Base unit: 4px
+Padding: Cards 24px, Sections 24px (mobile) / 40px (desktop)
+Buttons: Height 48px (large), 40px (medium); Border radius 12px; Padding horizontal 24px
+Inputs: Height 48px, Border radius 10px, Border 1px
+Cards: Border radius 16px, Shadow 0 10px 15px -3px rgb(0 0 0 / 0.1)
+Progress Circle: 120px diameter (desktop), 100px (mobile)
+Bottom Nav (mobile): Height 68px, Icons 28px
+Touch targets: Minimum 48px everywhere
+
+Layout Rules:
+
+Mobile-first, fully responsive (breakpoints: 640px, 768px, 1024px)
+Mobile: Top bar (64px) with logo + avatar, Bottom navigation (Home, Planner, Log, Foods, Profile)
+Desktop: Fixed sidebar (280px wide), main content max-width 1280px centered
+No useless headers or footers — everything functional
+Consistent 24px top padding on content areas
+
+Page-Specific Layouts:
+
+Landing: Hero section full viewport height on mobile, big 48px headline, CTA button 220px wide
+Auth Pages: Centered card max 420px, padding 40px, form gaps 24px
+Dashboard: Greeting row, large central progress circle, 4 summary cards in grid, today's meals list
+Meal Planner: Horizontal scroll 7-day tabs (68px height), drag & drop zones with dashed borders
+Food Log: Pill tabs for meal types (44px height), prominent search bar (52px)
+
+Micro-interactions:
+
+Buttons: scale(0.97) on press, smooth hover
+Cards: lift 4px on hover
+Progress: animate on load
+Toasts: slide-up from bottom, auto-dismiss after 3s
+
+All Features (Every One Must Be Fully Implemented & Working)
+Public:
+
+Landing page with hero, features, testimonials, CTA to signup
+Sign Up (email, password, name, age, gender, weight, height, activity level) with full validation
+Sign In with proper error handling
+Protected routes (redirect if not logged in)
+
+Protected:
+
+Dashboard: Calorie progress circle (color-coded: green <80%, yellow 80-100%, red >100%), streak, quick log, today’s meals, mini chart
+Meal Planner: 7-day view, drag & drop meals, auto totals, suggestions
+Food Log: Search foods, log with meal type, edit/delete, macro breakdown
+Foods Database: Search + filters, add custom food
+My Meals: Create/save meals with multiple items, reuse them
+Progress: Recharts line + bar charts (calories, protein, carbs, fat) with weekly/monthly toggle
+Profile: Edit info, set goals, BMI calculator
+Settings: Dark/light mode (persist), data export
+
+Core Mechanics:
+
+Automatic calorie & macro calculations everywhere
+Real-time updates with TanStack Query
+Toast notifications for all actions
+Loading spinners + error boundaries
+Dark mode support
+
+Final Delivery Requirements
+
+Generate complete code for all files
+Root package.json with scripts: "dev": "concurrently \"npm run server\" \"npm run client\""
+Clear step-by-step Replit setup instructions (install, prisma, run)
+Include .env.example with necessary variables
+Make the app beautiful, fast, clean, student-friendly, and 100% bug-free
+
+Start building now: First create the root package.json and Prisma schema, then backend, then frontend. Follow every specification exactly. Prioritize reliability and perfect UX.

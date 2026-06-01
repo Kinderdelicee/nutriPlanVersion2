@@ -3,13 +3,30 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: NutriPlan API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User profile and goals
+  - name: foods
+    description: Food database
+  - name: foodLogs
+    description: Daily food logging
+  - name: meals
+    description: Saved meal templates
+  - name: mealPlans
+    description: Weekly meal planning
+  - name: dashboard
+    description: Dashboard aggregates
+  - name: progress
+    description: Progress analytics
+
 paths:
   /healthz:
     get:
@@ -24,6 +41,568 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ── AUTH ──────────────────────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── USERS ─────────────────────────────────────────────────────────────────
+  /users/profile:
+    patch:
+      operationId: updateProfile
+      tags: [users]
+      summary: Update user profile and goals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  # ── FOODS ─────────────────────────────────────────────────────────────────
+  /foods:
+    get:
+      operationId: listFoods
+      tags: [foods]
+      summary: Search/list foods
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Food list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Food"
+    post:
+      operationId: createFood
+      tags: [foods]
+      summary: Create a custom food
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FoodInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Food"
+
+  /foods/{id}:
+    get:
+      operationId: getFood
+      tags: [foods]
+      summary: Get a food by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Food
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Food"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateFood
+      tags: [foods]
+      summary: Update a custom food
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FoodUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Food"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteFood
+      tags: [foods]
+      summary: Delete a custom food
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── FOOD LOGS ─────────────────────────────────────────────────────────────
+  /food-logs:
+    get:
+      operationId: listFoodLogs
+      tags: [foodLogs]
+      summary: List food logs for a date
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            description: "Date in YYYY-MM-DD format"
+      responses:
+        "200":
+          description: Food log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FoodLog"
+    post:
+      operationId: createFoodLog
+      tags: [foodLogs]
+      summary: Log a food entry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FoodLogInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodLog"
+
+  /food-logs/{id}:
+    patch:
+      operationId: updateFoodLog
+      tags: [foodLogs]
+      summary: Update a food log entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FoodLogUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodLog"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteFoodLog
+      tags: [foodLogs]
+      summary: Delete a food log entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── MEALS ─────────────────────────────────────────────────────────────────
+  /meals:
+    get:
+      operationId: listMeals
+      tags: [meals]
+      summary: List user's saved meals
+      responses:
+        "200":
+          description: Meals list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Meal"
+    post:
+      operationId: createMeal
+      tags: [meals]
+      summary: Create a saved meal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meal"
+
+  /meals/{id}:
+    get:
+      operationId: getMeal
+      tags: [meals]
+      summary: Get a meal by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Meal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meal"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateMeal
+      tags: [meals]
+      summary: Update a saved meal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meal"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteMeal
+      tags: [meals]
+      summary: Delete a saved meal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /meals/{id}/log:
+    post:
+      operationId: logMeal
+      tags: [meals]
+      summary: Log an entire saved meal to a date/mealType
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealLogInput"
+      responses:
+        "201":
+          description: Logged
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/FoodLog"
+
+  # ── MEAL PLANS ────────────────────────────────────────────────────────────
+  /meal-plans:
+    get:
+      operationId: listMealPlans
+      tags: [mealPlans]
+      summary: Get meal plan entries for a week
+      parameters:
+        - name: weekStart
+          in: query
+          required: true
+          schema:
+            type: string
+            description: "Week start date in YYYY-MM-DD format (Monday)"
+      responses:
+        "200":
+          description: Meal plan entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MealPlanEntry"
+    post:
+      operationId: createMealPlanEntry
+      tags: [mealPlans]
+      summary: Add a meal to the weekly plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MealPlanEntryInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MealPlanEntry"
+
+  /meal-plans/{id}:
+    delete:
+      operationId: deleteMealPlanEntry
+      tags: [mealPlans]
+      summary: Remove a meal from the weekly plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  # ── DASHBOARD ─────────────────────────────────────────────────────────────
+  /dashboard/summary:
+    get:
+      operationId: getDashboardSummary
+      tags: [dashboard]
+      summary: Get today's calorie and macro summary
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            description: "Date in YYYY-MM-DD format"
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummary"
+
+  /dashboard/streak:
+    get:
+      operationId: getStreak
+      tags: [dashboard]
+      summary: Get user's current logging streak
+      responses:
+        "200":
+          description: Streak data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreakInfo"
+
+  # ── PROGRESS ──────────────────────────────────────────────────────────────
+  /progress/nutrition:
+    get:
+      operationId: getNutritionProgress
+      tags: [progress]
+      summary: Get nutrition history for charts
+      parameters:
+        - name: period
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [week, month]
+        - name: endDate
+          in: query
+          required: true
+          schema:
+            type: string
+            description: "End date in YYYY-MM-DD format"
+      responses:
+        "200":
+          description: Nutrition progress data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DailyNutrition"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +613,512 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    # ── AUTH SCHEMAS ─────────────────────────────────────────────────────────
+    RegisterInput:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+          minLength: 1
+        age:
+          type: ["integer", "null"]
+        gender:
+          type: ["string", "null"]
+        weight:
+          type: ["number", "null"]
+        height:
+          type: ["number", "null"]
+        activityLevel:
+          type: ["string", "null"]
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    # ── USER SCHEMAS ─────────────────────────────────────────────────────────
+    User:
+      type: object
+      required: [id, email, name, createdAt]
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        name:
+          type: string
+        age:
+          type: ["integer", "null"]
+        gender:
+          type: ["string", "null"]
+        weight:
+          type: ["number", "null"]
+        height:
+          type: ["number", "null"]
+        activityLevel:
+          type: ["string", "null"]
+        dailyCalorieGoal:
+          type: ["integer", "null"]
+        dailyProteinGoal:
+          type: ["number", "null"]
+        dailyCarbsGoal:
+          type: ["number", "null"]
+        dailyFatGoal:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+
+    ProfileUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: ["integer", "null"]
+        gender:
+          type: ["string", "null"]
+        weight:
+          type: ["number", "null"]
+        height:
+          type: ["number", "null"]
+        activityLevel:
+          type: ["string", "null"]
+        dailyCalorieGoal:
+          type: ["integer", "null"]
+        dailyProteinGoal:
+          type: ["number", "null"]
+        dailyCarbsGoal:
+          type: ["number", "null"]
+        dailyFatGoal:
+          type: ["number", "null"]
+
+    # ── FOOD SCHEMAS ─────────────────────────────────────────────────────────
+    Food:
+      type: object
+      required: [id, name, calories, protein, carbs, fat, servingSize, isCustom]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        calories:
+          type: integer
+        protein:
+          type: number
+        carbs:
+          type: number
+        fat:
+          type: number
+        fiber:
+          type: ["number", "null"]
+        sugar:
+          type: ["number", "null"]
+        sodium:
+          type: ["number", "null"]
+        servingSize:
+          type: string
+        servingUnit:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+        isCustom:
+          type: boolean
+        userId:
+          type: ["integer", "null"]
+
+    FoodInput:
+      type: object
+      required: [name, calories, protein, carbs, fat, servingSize]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        calories:
+          type: integer
+          minimum: 0
+        protein:
+          type: number
+          minimum: 0
+        carbs:
+          type: number
+          minimum: 0
+        fat:
+          type: number
+          minimum: 0
+        fiber:
+          type: ["number", "null"]
+        sugar:
+          type: ["number", "null"]
+        sodium:
+          type: ["number", "null"]
+        servingSize:
+          type: string
+        servingUnit:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+
+    FoodUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        calories:
+          type: integer
+        protein:
+          type: number
+        carbs:
+          type: number
+        fat:
+          type: number
+        fiber:
+          type: ["number", "null"]
+        sugar:
+          type: ["number", "null"]
+        sodium:
+          type: ["number", "null"]
+        servingSize:
+          type: string
+        servingUnit:
+          type: ["string", "null"]
+        category:
+          type: ["string", "null"]
+
+    # ── FOOD LOG SCHEMAS ─────────────────────────────────────────────────────
+    FoodLog:
+      type: object
+      required: [id, userId, date, mealType, quantity, calories, protein, carbs, fat, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        date:
+          type: string
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        foodId:
+          type: ["integer", "null"]
+        food:
+          $ref: "#/components/schemas/Food"
+        customFoodName:
+          type: ["string", "null"]
+        quantity:
+          type: number
+        calories:
+          type: integer
+        protein:
+          type: number
+        carbs:
+          type: number
+        fat:
+          type: number
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+
+    FoodLogInput:
+      type: object
+      required: [date, mealType, quantity, calories, protein, carbs, fat]
+      properties:
+        date:
+          type: string
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        foodId:
+          type: ["integer", "null"]
+        customFoodName:
+          type: ["string", "null"]
+        quantity:
+          type: number
+          minimum: 0
+        calories:
+          type: integer
+          minimum: 0
+        protein:
+          type: number
+          minimum: 0
+        carbs:
+          type: number
+          minimum: 0
+        fat:
+          type: number
+          minimum: 0
+        notes:
+          type: ["string", "null"]
+
+    FoodLogUpdate:
+      type: object
+      properties:
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        quantity:
+          type: number
+        calories:
+          type: integer
+        protein:
+          type: number
+        carbs:
+          type: number
+        fat:
+          type: number
+        notes:
+          type: ["string", "null"]
+
+    # ── MEAL SCHEMAS ─────────────────────────────────────────────────────────
+    MealItem:
+      type: object
+      required: [id, foodId, quantity, calories, protein, carbs, fat]
+      properties:
+        id:
+          type: integer
+        foodId:
+          type: integer
+        food:
+          $ref: "#/components/schemas/Food"
+        quantity:
+          type: number
+        calories:
+          type: integer
+        protein:
+          type: number
+        carbs:
+          type: number
+        fat:
+          type: number
+
+    MealItemInput:
+      type: object
+      required: [foodId, quantity, calories, protein, carbs, fat]
+      properties:
+        foodId:
+          type: integer
+        quantity:
+          type: number
+          minimum: 0
+        calories:
+          type: integer
+          minimum: 0
+        protein:
+          type: number
+          minimum: 0
+        carbs:
+          type: number
+          minimum: 0
+        fat:
+          type: number
+          minimum: 0
+
+    Meal:
+      type: object
+      required: [id, userId, name, totalCalories, totalProtein, totalCarbs, totalFat, createdAt]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        totalCalories:
+          type: integer
+        totalProtein:
+          type: number
+        totalCarbs:
+          type: number
+        totalFat:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealItem"
+        createdAt:
+          type: string
+
+    MealInput:
+      type: object
+      required: [name, items]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealItemInput"
+
+    MealUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealItemInput"
+
+    MealLogInput:
+      type: object
+      required: [date, mealType]
+      properties:
+        date:
+          type: string
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+
+    # ── MEAL PLAN SCHEMAS ─────────────────────────────────────────────────────
+    MealPlanEntry:
+      type: object
+      required: [id, userId, date, mealType, mealId]
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        date:
+          type: string
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        mealId:
+          type: integer
+        meal:
+          $ref: "#/components/schemas/Meal"
+
+    MealPlanEntryInput:
+      type: object
+      required: [date, mealType, mealId]
+      properties:
+        date:
+          type: string
+        mealType:
+          type: string
+          enum: [breakfast, lunch, dinner, snack]
+        mealId:
+          type: integer
+
+    # ── DASHBOARD SCHEMAS ─────────────────────────────────────────────────────
+    MacroSummary:
+      type: object
+      required: [calories, protein, carbs, fat]
+      properties:
+        calories:
+          type: integer
+        protein:
+          type: number
+        carbs:
+          type: number
+        fat:
+          type: number
+
+    MealTypeSummary:
+      type: object
+      required: [mealType, calories, protein, carbs, fat, entries]
+      properties:
+        mealType:
+          type: string
+        calories:
+          type: integer
+        protein:
+          type: number
+        carbs:
+          type: number
+        fat:
+          type: number
+        entries:
+          type: integer
+
+    DashboardSummary:
+      type: object
+      required: [date, totals, goals, mealBreakdown, caloriePercentage]
+      properties:
+        date:
+          type: string
+        totals:
+          $ref: "#/components/schemas/MacroSummary"
+        goals:
+          $ref: "#/components/schemas/MacroSummary"
+        mealBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/MealTypeSummary"
+        caloriePercentage:
+          type: number
+        remaining:
+          $ref: "#/components/schemas/MacroSummary"
+
+    StreakInfo:
+      type: object
+      required: [currentStreak, longestStreak, lastLogDate]
+      properties:
+        currentStreak:
+          type: integer
+        longestStreak:
+          type: integer
+        lastLogDate:
+          type: ["string", "null"]
+
+    # ── PROGRESS SCHEMAS ──────────────────────────────────────────────────────
+    DailyNutrition:
+      type: object
+      required: [date, calories, protein, carbs, fat]
+      properties:
+        date:
+          type: string
+        calories:
+          type: integer
+        protein:
+          type: number
+        carbs:
+          type: number
+        fat:
+          type: number
+        goalCalories:
+          type: ["integer", "null"]
